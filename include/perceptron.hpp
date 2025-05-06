@@ -11,9 +11,13 @@ private:
     float bias;
     float learning_rate;
     std::string mode;
-    int activation(float z);
     bool show_weight_update = true;
     bool show_predictions = true;
+    int activation(float z);
+    void print_epoch_header(int epoch);
+    void update_weights(const std::vector<int> &input, int expected);
+    bool has_converged(const std::vector<float> &old_weights, float old_bias);
+    void print_predictions(const std::vector<std::vector<int>> &X, const std::vector<int> &y);
 
 public:
     Perceptron(int n_inputs, float lr = 0.1);

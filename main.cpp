@@ -32,9 +32,7 @@ int main(int argc, char *argv[])
     }
 
     p.print_weights();
-
     int output = p.predict({x1, x2});
     cout << "Entrada: (" << x1 << ", " << x2 << ") => Salida: " << output << endl;
-
     return 0;
 }
