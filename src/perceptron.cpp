@@ -1,137 +1,92 @@
 #include "perceptron.hpp"
-#include <iostream>
-#include <fstream>
-#include <cmath>
 
-using namespace std;
-
-int Perceptron::activation(float z)
+Perceptron::Perceptron(int n_inputs, float lr_input, std::function<float(float)> act)
 {
-    return z >= 0 ? 1 : 0;
+    if (n_inputs <= 0)
+        throw std::invalid_argument("N inputs must be positive");
+    if (lr <= 0)
+        throw std::invalid_argument("Learning rate must be positive");
+    lr = lr_input;
+    n = Neuron(n_inputs, act);
 }
 
-void Perceptron::print_epoch_header(int epoch)
+float Perceptron::predict(const std::vector<float> &inputs)
 {
-    cout << "Pesos antes del Epoch " << epoch + 1 << ": ";
-    print_weights();
-}
-
-void Perceptron::update_weights(const vector<int> &input, int expected)
-{
-    int prediction = predict(input);
-    int error = expected - prediction;
-    if (error != 0 && show_weight_update)
-    {
-        cout << "Fallo en entrada: (" << input[0] << ", " << input[1] << ")" << endl;
-        for (size_t j = 0; j < weights.size(); j++)
-        {
-            float delta = learning_rate * error * input[j];
-            cout << "w" << j << " = " << weights[j] << " + " << learning_rate
-                 << " * " << error << " * " << input[j] << " = ";
-            weights[j] += delta;
-            cout << weights[j] << endl;
-        }
-        float delta_b = learning_rate * error;
-        cout << "bias = " << bias << " + " << learning_rate << " * " << error << " = ";
-        bias += delta_b;
-        cout << bias << endl;
-    }
-}
-
-bool Perceptron::has_converged(const vector<float> &old_weights, float old_bias)
-{
-    for (size_t i = 0; i < weights.size(); i++)
-        if (abs(weights[i] - old_weights[i]) > 0.001)
-            return false;
-    return abs(bias - old_bias) <= 0.001;
-}
-
-void Perceptron::print_predictions(const vector<vector<int>> &X, const vector<int> &y)
-{
-    for (size_t i = 0; i < X.size(); i++)
-    {
-        int prediction = predict(X[i]);
-        cout << "Entrada: (" << X[i][0] << ", " << X[i][1] << ") ";
-        cout << "Salida esperada: " << y[i] << ", Predicha: " << prediction << endl;
-    }
-    cout << endl;
-}
-
-Perceptron::Perceptron(int n_inputs, float lr)
-{
-    weights.resize(n_inputs, 0);
-    bias = 0;
-    learning_rate = lr;
-}
-
-void Perceptron::set_mode(const string &m)
-{
-    mode = m;
-}
-
-void Perceptron::set_show_weight_update(bool val)
-{
-    show_weight_update = val;
-}
-
-void Perceptron::set_show_predictions(bool val)
-{
-    show_predictions = val;
-}
-
-int Perceptron::predict(const vector<int> &inputs)
-{
-    float z = bias;
-    for (size_t i = 0; i < weights.size(); i++)
-        z += weights[i] * inputs[i];
-    return activation(z);
-}
-
-void Perceptron::train(const vector<vector<int>> &X, const vector<int> &y)
-{
-    bool converged = false;
-    int epoch = 0;
-
-    while (!converged)
-    {
-        print_epoch_header(epoch);
-        vector<float> old_weights = weights;
-        float old_bias = bias;
-        for (size_t i = 0; i < X.size(); i++)
-            update_weights(X[i], y[i]);
-        cout << "----" << endl;
-        if (show_predictions)
-            print_predictions(X, y);
-        converged = has_converged(old_weights, old_bias);
-        epoch++;
-    }
-}
-
-void Perceptron::save_weights(const string &filename)
-{
-    ofstream file(filename);
-    for (float w : weights)
-        file << w << " ";
-    file << bias;
-    file.close();
-}
-
-bool Perceptron::load_weights(const string &filename)
-{
-    ifstream file(filename);
-    if (!file.is_open())
-        return false;
-    for (size_t i = 0; i < weights.size(); i++)
-        file >> weights[i];
-    file >> bias;
-    file.close();
-    return true;
+    if (inputs.size() != n.get_weights().size())
+        throw std::invalid_argument("Size of inputs /= n inputs");
+    return n.forward(inputs);
 }
 
 void Perceptron::print_weights()
 {
-    cout << "Pesos: ";
-    for (float w : weights)
-        cout << w << " ";
-    cout << "| Bias: " << bias << endl;
+    std::cout << "Pesos: ";
+    for (auto x : n.get_weights())
+        std::cout << x << " ";
+    std::cout << "| Sesgo: " << n.get_sesgo() << std::endl;
+}
+
+void Perceptron::train(const std::vector<std::vector<float>> &X, const std::vector<float> &y)
+{
+    if (X.size() != y.size())
+        throw std::invalid_argument("Size of X /= size of y");
+    if (X.empty())
+        throw std::invalid_argument("X is empty");
+    if (X[0].size() != n.get_weights().size())
+        throw std::invalid_argument("Size of X[0] /= n inputs");
+
+    int epoch = 0;
+    bool converged = false;
+
+    std::cout << "Epoch | Pesos | Sesgo | Error\n";
+
+    while (!converged)
+    {
+        converged = true;
+        int total_errors = 0;
+
+        for (size_t i = 0; i < X.size(); i++)
+        {
+            auto prediction = n.forward(X[i]);
+            auto err = y[i] - prediction;
+            if (err != 0)
+            {
+                n.update_weights(X[i], err, lr);
+                converged = false;
+                total_errors++;
+            }
+        }
+
+        // Imprimir pesos, sesgo y error
+        std::cout << epoch << " | ";
+        for (auto w : n.get_weights())
+            std::cout << w << " ";
+        std::cout << "| " << n.get_sesgo() << " | " << total_errors << " |\n";
+
+        epoch++;
+    }
+}
+
+void Perceptron::save_weights(const std::string &filename)
+{
+    std::ofstream file(filename);
+    for (float x : n.get_weights())
+        file << x << " ";
+    file << n.get_sesgo() << std::endl;
+    file.close();
+}
+
+bool Perceptron::load_weights(const std::string &filename)
+{
+    std::ifstream file(filename);
+    if (!file.is_open())
+        return false;
+    auto sesgo_backup = n.get_sesgo();
+    auto w_backup = n.get_weights();
+    for (size_t i = 0; i < w_backup.size(); i++)
+        file >> w_backup[i];
+    file >> sesgo_backup;
+    file.close();
+    n.set_weights(w_backup);
+    n.set_sesgo(sesgo_backup);
+    return true;
 }

@@ -8,4 +8,5 @@ include_directories(include)
 add_executable(perceptron
     main.cpp
     src/perceptron.cpp
+    src/neuron.cpp
 )
