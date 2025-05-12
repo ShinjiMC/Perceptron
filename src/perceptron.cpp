@@ -3,9 +3,9 @@
 Perceptron::Perceptron(int n_inputs, float lr_input, std::function<float(float)> act)
 {
     if (n_inputs <= 0)
-        throw std::invalid_argument("N inputs must be positive");
+        throw std::invalid_argument("N inputs must be positive: " + std::to_string(n_inputs));
     if (lr <= 0)
-        throw std::invalid_argument("Learning rate must be positive");
+        throw std::invalid_argument("Learning rate must be positive: " + std::to_string(lr_input));
     lr = lr_input;
     n = Neuron(n_inputs, act);
 }
@@ -37,7 +37,7 @@ void Perceptron::train(const std::vector<std::vector<float>> &X, const std::vect
     int epoch = 0;
     bool converged = false;
 
-    std::cout << "Epoch | Pesos | Sesgo | Error\n";
+    std::cout << "Epoch \t| Pesos \t| Sesgo | Error\n";
 
     while (!converged)
     {
@@ -57,10 +57,10 @@ void Perceptron::train(const std::vector<std::vector<float>> &X, const std::vect
         }
 
         // Imprimir pesos, sesgo y error
-        std::cout << epoch << " | ";
+        std::cout << epoch << " \t| ";
         for (auto w : n.get_weights())
             std::cout << w << " ";
-        std::cout << "| " << n.get_sesgo() << " | " << total_errors << " |\n";
+        std::cout << " \t| " << n.get_sesgo() << " \t| " << total_errors << " |\n";
 
         epoch++;
     }
